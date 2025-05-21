@@ -24,7 +24,7 @@ def get_corresponding_tqdm() -> Callable[..., Iterator[object]]:
     from tqdm import tqdm as standard_tqdm
     return standard_tqdm  # type: ignore[return-value]
 
-def progress_bar(iterable: Iterable[T],*,
+def setup_progress_monitor(iterable: Iterable[T],*,
                 desc: str | None = None,
                 colour: str | None = None,
                 total: int | None = None,) -> Iterator[T]:
