@@ -1,1 +1,1 @@
-from progress_bar.main import setup_progress_monitor, pbar_desc, get_corresponding_tqdm
+from progress_bar.main import setup_progress_monitor, pbar_desc, get_corresponding_tqdm, run_parallel

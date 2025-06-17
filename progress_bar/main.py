@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Iterable, Iterator, TypeVar, Union, Callable, cast
 from pathlib import Path
 from os import PathLike
@@ -9,6 +10,8 @@ from IPython.core.getipython import get_ipython
 
 T = TypeVar("T")
 PathType = Union[str, Path, PathLike[str]]
+
+logger = logging.getLogger(__name__)
 
 def is_run_from_ipython()-> bool:
     """Check if the pipeline is run in a notebook or not"""
@@ -103,5 +106,8 @@ def run_parallel(
         for future in setup_progress_monitor(
             as_completed(futures), desc=desc, colour=colour, total=total
         ):
-            results.append(future.result())
+            try:
+                results.append(future.result())
+            except Exception as e:
+            logger.error(f"FOV failed: {e}")
     return results
