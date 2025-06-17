@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Iterable, Iterator, TypeVar, Union, Callable, cast
 from pathlib import Path
 from os import PathLike
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 
 from IPython.core.getipython import get_ipython
 
@@ -49,3 +50,58 @@ def pbar_desc(desc: str)-> str:
         return desc
     return f"\033[94m{desc}\033[0m"
 
+def run_parallel(
+    func: Callable[[T], T],
+    iterable: Iterable[T],
+    *,
+    executor: str = 'thread',       # 'thread' or 'process'
+    max_workers: int | None = None,
+    desc: str | None = None,
+    colour: str | None = None,
+) -> list[T]:
+    """
+    Execute a function over an iterable in parallel, showing a progress bar.
+
+    Parameters
+    ----------
+    func : Callable[[T], Any]
+        The function to execute on each item.
+    iterable : Iterable[T]
+        The sequence of inputs to process.
+    executor : {'thread', 'process'}
+        Whether to use ThreadPoolExecutor or ProcessPoolExecutor.
+    max_workers : int | None
+        Number of worker threads/processes. Defaults to os.cpu_count() if None.
+    desc : str | None
+        Description for the progress bar.
+    colour : str | None
+        Colour for the progress bar.
+
+    Returns
+    -------
+    List of results in the same order as `iterable`.
+    """
+    exec_type = executor.lower()
+    if exec_type not in ('thread', 'process'):
+        raise ValueError("executor must be 'thread' or 'process'")
+
+    # Determine executor class
+    ExecPool = ThreadPoolExecutor if exec_type == 'thread' else ProcessPoolExecutor
+
+    # Attempt to infer total length
+    total = None
+    try:
+        total = len(iterable)  # type: ignore
+    except Exception:
+        pass
+
+    results: list[T] = []
+    with ExecPool(max_workers=max_workers) as pool:
+        # Submit all tasks
+        futures = [pool.submit(func, item) for item in iterable]
+        # Iterate as tasks complete, with progress bar
+        for future in setup_progress_monitor(
+            as_completed(futures), desc=desc, colour=colour, total=total
+        ):
+            results.append(future.result())
+    return results

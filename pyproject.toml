@@ -1,6 +1,6 @@
 [project]
 name = "progress-bar"
-version = "0.1.0"
+version = "0.2.0"
 description = "Utility function to display a progress bar in the console, either in the terminal or in jupyter."
 readme = "README.md"
 authors = [
