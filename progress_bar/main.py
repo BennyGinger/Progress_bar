@@ -106,8 +106,9 @@ def run_parallel(
         for future in setup_progress_monitor(
             as_completed(futures), desc=desc, colour=colour, total=total
         ):
+            item = future_to_item[future]
             try:
                 results.append(future.result())
             except Exception as e:
-            logger.error(f"FOV failed: {e}")
+                logger.error(f"Item {item} failed: {e}")
     return results
