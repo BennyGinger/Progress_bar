@@ -111,4 +111,5 @@ def run_parallel(
                 results.append(future.result())
             except Exception as e:
                 logger.error(f"Item {item} failed: {e}")
+                raise
     return results
