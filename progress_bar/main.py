@@ -100,11 +100,15 @@ def run_parallel(
 
     results: list[T] = []
     with ExecPool(max_workers=max_workers) as pool:
-        # Submit all tasks
-        futures = [pool.submit(func, item) for item in iterable]
+        # Submit all tasks and create mapping
+        future_to_item = {}
+        for item in iterable:
+            future = pool.submit(func, item)
+            future_to_item[future] = item
+        
         # Iterate as tasks complete, with progress bar
         for future in setup_progress_monitor(
-            as_completed(futures), desc=desc, colour=colour, total=total
+            as_completed(future_to_item.keys()), desc=desc, colour=colour, total=total
         ):
             item = future_to_item[future]
             try:
