@@ -139,7 +139,7 @@ class ProgressManager:
 
         if self.show_logs:
             # capture + mute console (clean UI)
-            self.capture_logs(logging.getLogger(), level=logging.DEBUG, mute_console=True)
+            self.capture_logs(logging.getLogger(), level=logging.INFO, mute_console=True)
         else:
             # batch mode: don't capture, but still mute console so logs don't trash the pbar
             self._swap = detach_console_stream_handlers()
