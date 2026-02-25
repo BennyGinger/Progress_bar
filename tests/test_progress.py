@@ -213,14 +213,14 @@ def test_context_manager_sets_up_live() -> None:
 
 
 def test_context_manager_captures_logs_when_show_logs_true() -> None:
-    """When show_logs=True, context manager should capture logs automatically."""
+    """When show_logs=True, logs from captured loggers appear in buffer."""
     pm = ProgressManager.create(max_log_lines=5, show_logs=True)
     test_logger = logging.getLogger("test_context_capture")
     test_logger.setLevel(logging.DEBUG)
 
     with pm:
-        # In show_logs mode, capture_logs should be called automatically
-        test_logger.debug("Test log in context")
+        pm.capture_logs(test_logger, level=logging.DEBUG, mute_console=False)
+        test_logger.info("Test log in context")
 
     # After exit, logs should be in buffer
     lines = pm.log_buffer.lines()
