@@ -12,6 +12,15 @@ class DummyTask:
     task_id: int = 1
 
 
+class DummyProgress:
+    """Mock Rich Progress object."""
+    def __init__(self) -> None:
+        self.update_calls: list[tuple[int, dict[str, Any]]] = []
+    
+    def update(self, task_id: int, **kwargs: Any) -> None:
+        self.update_calls.append((task_id, kwargs))
+
+
 class DummyProgressManager:
     """
     A dummy ProgressManager that mimics the subset of the API your decorator uses:
@@ -22,10 +31,17 @@ class DummyProgressManager:
     def __init__(self) -> None:
         self.entered = False
         self.exited = False
+        self.exit_called = False
 
         self.created_kwargs: dict[str, Any] | None = None
         self.add_task_calls: list[tuple[str, int]] = []
         self.advance_calls: list[tuple[int, int]] = []  # (task_id, step)
+        
+        # Add mock progress object
+        self.progress = DummyProgress()
+        
+        # Add mock swap for handler testing
+        self._swap: Any = None
 
     def __enter__(self) -> "DummyProgressManager":
         self.entered = True
@@ -33,6 +49,7 @@ class DummyProgressManager:
 
     def __exit__(self, exc_type, exc, tb) -> None:
         self.exited = True
+        self.exit_called = True
 
     def add_task(self, description: str, total: int) -> int:
         self.add_task_calls.append((description, total))
@@ -40,6 +57,10 @@ class DummyProgressManager:
 
     def advance(self, task_id: int, step: int = 1) -> None:
         self.advance_calls.append((task_id, step))
+    
+    def refresh(self) -> None:
+        """Mock refresh method."""
+        pass
 
 
 @pytest.fixture
