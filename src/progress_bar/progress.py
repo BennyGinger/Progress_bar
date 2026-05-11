@@ -41,6 +41,29 @@ class ElapsedEtaColumn(ProgressColumn):
         remaining = _format_hhmmss(task.time_remaining)
         return Text(f"{elapsed}/{remaining}")
 
+
+class SecondsPerIterColumn(ProgressColumn):
+    """Renders seconds per iteration based on task speed."""
+    def render(self, task: Task) -> Text:
+        speed = task.speed
+        if speed is None or speed <= 0:
+            return Text("--.-- s/iter")
+        return Text(f"{1.0 / speed:.2f} s/iter")
+
+
+class EstimatedRemainingColumn(ProgressColumn):
+    """Renders estimated remaining time in HH:MM:SS."""
+    def render(self, task: Task) -> Text:
+        remaining = _format_hhmmss(task.time_remaining)
+        return Text(f"est. {remaining}")
+
+
+class ElapsedColumn(ProgressColumn):
+    """Renders elapsed time in HH:MM:SS."""
+    def render(self, task: Task) -> Text:
+        elapsed = _format_hhmmss(task.elapsed)
+        return Text(elapsed)
+
 @dataclass
 class ProgressManager:
     console: Console
@@ -73,8 +96,9 @@ class ProgressManager:
             TextColumn("[bold]{task.description}"),
             BarColumn(),
             TextColumn("{task.completed}/{task.total}", justify="right"),
-            IterPerSecColumn(),          # <-- safe it/s
-            ElapsedEtaColumn(),          # <-- safe elapsed/ETA
+            SecondsPerIterColumn(),
+            EstimatedRemainingColumn(),
+            ElapsedColumn(),
             console=console,
             transient=transient,
             auto_refresh=False,

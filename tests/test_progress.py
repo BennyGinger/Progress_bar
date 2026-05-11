@@ -7,8 +7,9 @@ import pytest
 from rich.progress import Task
 
 from progress_bar.progress import (
-    IterPerSecColumn,
-    ElapsedEtaColumn,
+    SecondsPerIterColumn,
+    EstimatedRemainingColumn,
+    ElapsedColumn,
     _format_hhmmss,
     ProgressManager,
 )
@@ -35,15 +36,15 @@ def test_format_hhmmss(seconds: float | None, expected: str) -> None:
 @pytest.mark.parametrize(
     ("speed", "expected"),
     [
-        (None, "--.- it/s"),
-        (42.123, "42.12 it/s"),
-        (0.0, "0.00 it/s"),
-        (1.5, "1.50 it/s"),
+        (None, "--.-- s/iter"),
+        (0.0, "--.-- s/iter"),
+        (2.0, "0.50 s/iter"),
+        (1.5, "0.67 s/iter"),
     ],
 )
-def test_iter_per_sec_column(speed: float | None, expected: str) -> None:
-    """Test IterPerSecColumn renders speed correctly."""
-    column = IterPerSecColumn()
+def test_seconds_per_iter_column(speed: float | None, expected: str) -> None:
+    """Test SecondsPerIterColumn renders s/iter correctly."""
+    column = SecondsPerIterColumn()
     task = Mock(spec=Task)
     task.speed = speed
 
@@ -52,20 +53,37 @@ def test_iter_per_sec_column(speed: float | None, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("elapsed", "time_remaining", "expected"),
+    ("time_remaining", "expected"),
     [
-        (None, None, "--:--:--/--:--:--"),
-        (65, 3661, "0:01:05/1:01:01"),
-        (10, None, "0:00:10/--:--:--"),
-        (None, 120, "--:--:--/0:02:00"),
+        (None, "est. --:--:--"),
+        (3661, "est. 1:01:01"),
+        (120, "est. 0:02:00"),
     ],
 )
-def test_elapsed_eta_column(elapsed: float | None, time_remaining: float | None, expected: str) -> None:
-    """Test ElapsedEtaColumn renders elapsed/ETA correctly."""
-    column = ElapsedEtaColumn()
+def test_estimated_remaining_column(time_remaining: float | None, expected: str) -> None:
+    """Test EstimatedRemainingColumn renders estimate correctly."""
+    column = EstimatedRemainingColumn()
+    task = Mock(spec=Task)
+    task.time_remaining = time_remaining
+
+    result = column.render(task)
+    assert result.plain == expected
+
+
+@pytest.mark.parametrize(
+    ("elapsed", "expected"),
+    [
+        (None, "--:--:--"),
+        (0, "0:00:00"),
+        (65, "0:01:05"),
+        (3661, "1:01:01"),
+    ],
+)
+def test_elapsed_column(elapsed: float | None, expected: str) -> None:
+    """Test ElapsedColumn renders elapsed time correctly."""
+    column = ElapsedColumn()
     task = Mock(spec=Task)
     task.elapsed = elapsed
-    task.time_remaining = time_remaining
 
     result = column.render(task)
     assert result.plain == expected
