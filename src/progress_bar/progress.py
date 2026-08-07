@@ -28,7 +28,7 @@ def _format_hhmmss(seconds: float | None) -> str:
 class IterPerSecColumn(ProgressColumn):
     """Renders iterations per second with safe fallback."""
     def render(self, task: Task) -> Text:
-        speed = task.speed
+        speed = task.finished_speed or task.speed
         if speed is None:
             return Text("--.- it/s")
         return Text(f"{speed:.2f} it/s")
@@ -42,20 +42,31 @@ class ElapsedEtaColumn(ProgressColumn):
         return Text(f"{elapsed}/{remaining}")
 
 
-class SecondsPerIterColumn(ProgressColumn):
-    """Renders seconds per iteration based on task speed."""
+class TimePerIterColumn(ProgressColumn):
+    """Render the duration of the most recently completed iteration."""
+
     def render(self, task: Task) -> Text:
-        speed = task.speed
-        if speed is None or speed <= 0:
-            return Text("--.-- s/iter")
-        return Text(f"{1.0 / speed:.2f} s/iter")
+        iteration_time = task.fields.get("last_iteration_time")
+
+        if iteration_time is None:
+            return Text("--:--:-- /iter")
+
+        return Text(f"{_format_hhmmss(iteration_time)} /iter")
 
 
 class EstimatedRemainingColumn(ProgressColumn):
-    """Renders estimated remaining time in HH:MM:SS."""
+    """Render a countdown to the estimate, then time elapsed beyond it."""
+
     def render(self, task: Task) -> Text:
-        remaining = _format_hhmmss(task.time_remaining)
-        return Text(f"est. {remaining}")
+        deadline = task.fields.get("eta_deadline")
+
+        if deadline is None:
+            return Text("est. --:--:--")
+
+        remaining = deadline - task.get_time()
+        if remaining <= 0:
+            return Text(f"est. +{_format_hhmmss(-remaining)}")
+        return Text(f"est. {_format_hhmmss(remaining)}")
 
 
 class ElapsedColumn(ProgressColumn):
@@ -96,12 +107,13 @@ class ProgressManager:
             TextColumn("[bold]{task.description}"),
             BarColumn(),
             TextColumn("{task.completed}/{task.total}", justify="right"),
-            SecondsPerIterColumn(),
+            TimePerIterColumn(),
             EstimatedRemainingColumn(),
             ElapsedColumn(),
             console=console,
             transient=transient,
             auto_refresh=False,
+            speed_estimate_period=3600
         )
         buf = LogBuffer(max_lines=max_log_lines)
         return cls(console=console, progress=progress, log_buffer=buf, log_mode=log_mode)
@@ -113,6 +125,25 @@ class ProgressManager:
         return tid
 
     def advance(self, task_id: TaskID, step: int = 1) -> None:
+        task = self.progress.tasks[task_id]
+
+        elapsed = task.elapsed or 0.0
+        previous_elapsed = task.fields.get("completed_elapsed", 0.0)
+
+        iteration_time = elapsed - previous_elapsed
+        new_completed = task.completed + step
+
+        task.fields["last_iteration_time"] = iteration_time
+        task.fields["completed_elapsed"] = elapsed
+        task.fields["average_iteration_time"] = elapsed / new_completed
+
+        if task.total is not None:
+            remaining_items = max(0, task.total - new_completed)
+            estimated_remaining = (
+                task.fields["average_iteration_time"] * remaining_items
+            )
+            task.fields["eta_deadline"] = task.get_time() + estimated_remaining
+
         self.progress.advance(task_id, step)
         self.refresh()
 
