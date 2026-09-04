@@ -1,6 +1,13 @@
 # Progress Bar
 
-A simple, explicit progress bar package with optional log control for Python applications.
+A simple, explicit progress and logging package for Python applications. It
+wraps Rich in a small context-managed API, supports determinate and indeterminate
+work, reports rates and estimated completion, and keeps noisy worker logs from
+destroying the terminal display.
+
+FITS uses it for command-line workflow feedback, but the package has no
+knowledge of microscopy data or FITS state and can be reused by any iterable or
+task loop.
 
 ## Features
 

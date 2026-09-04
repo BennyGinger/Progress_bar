@@ -7,9 +7,9 @@ import pytest
 from rich.progress import Task
 
 from progress_bar.progress import (
-    SecondsPerIterColumn,
     EstimatedRemainingColumn,
     ElapsedColumn,
+    TimePerIterColumn,
     _format_hhmmss,
     ProgressManager,
 )
@@ -34,37 +34,40 @@ def test_format_hhmmss(seconds: float | None, expected: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("speed", "expected"),
+    ("iteration_time", "expected"),
     [
-        (None, "--.-- s/iter"),
-        (0.0, "--.-- s/iter"),
-        (2.0, "0.50 s/iter"),
-        (1.5, "0.67 s/iter"),
+        (None, "--:--:-- /iter"),
+        (0.0, "0:00:00 /iter"),
+        (2.0, "0:00:02 /iter"),
+        (65.0, "0:01:05 /iter"),
     ],
 )
-def test_seconds_per_iter_column(speed: float | None, expected: str) -> None:
-    """Test SecondsPerIterColumn renders s/iter correctly."""
-    column = SecondsPerIterColumn()
+def test_time_per_iter_column(
+        iteration_time: float | None, expected: str) -> None:
+    """Test TimePerIterColumn renders the latest iteration duration."""
+    column = TimePerIterColumn()
     task = Mock(spec=Task)
-    task.speed = speed
+    task.fields = {"last_iteration_time": iteration_time}
 
     result = column.render(task)
     assert result.plain == expected
 
 
 @pytest.mark.parametrize(
-    ("time_remaining", "expected"),
+    ("deadline", "expected"),
     [
         (None, "est. --:--:--"),
-        (3661, "est. 1:01:01"),
-        (120, "est. 0:02:00"),
+        (3761, "est. 1:01:01"),
+        (220, "est. 0:02:00"),
+        (90, "est. +0:00:10"),
     ],
 )
-def test_estimated_remaining_column(time_remaining: float | None, expected: str) -> None:
+def test_estimated_remaining_column(deadline: float | None, expected: str) -> None:
     """Test EstimatedRemainingColumn renders estimate correctly."""
     column = EstimatedRemainingColumn()
     task = Mock(spec=Task)
-    task.time_remaining = time_remaining
+    task.fields = {"eta_deadline": deadline}
+    task.get_time.return_value = 100
 
     result = column.render(task)
     assert result.plain == expected
